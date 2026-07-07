@@ -51,17 +51,9 @@ impl ParsedIntent {
     }
 }
 
-/// Agent 执行步骤
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentStep {
-    pub step: String,
-    pub status: String, // "running" | "done" | "error"
-}
-
 /// Agent 返回给前端的最终结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentResult {
     pub products: Vec<Product>,
     pub recommendation: String,
-    pub steps: Vec<AgentStep>,
 }

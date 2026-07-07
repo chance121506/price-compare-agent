@@ -1,10 +1,19 @@
 use std::sync::Arc;
+use tauri::Emitter;
 
 use crate::ai::provider::{ChatMessage, LlmProvider};
-use crate::models::product::{AgentResult, AgentStep};
+use crate::models::product::AgentResult;
 
 use super::intent::parse_intent;
 use super::tools;
+
+const STEPS: &[&str] = &["理解需求", "筛选商品", "比价分析", "生成推荐"];
+
+#[derive(Clone, serde::Serialize)]
+struct StepEvent {
+    index: usize,
+    label: String,
+}
 
 pub struct AgentOrchestrator {
     llm: Arc<dyn LlmProvider>,
@@ -14,45 +23,44 @@ pub struct AgentOrchestrator {
 impl AgentOrchestrator {
     pub fn new(llm: Arc<dyn LlmProvider>) -> anyhow::Result<Self> {
         let all_products = tools::load_products()?;
-        Ok(Self {
-            llm,
-            all_products,
-        })
+        Ok(Self { llm, all_products })
     }
 
-    pub async fn run(&self, user_input: &str) -> anyhow::Result<AgentResult> {
-        let mut steps = vec![];
+    fn emit_step(&self, app_handle: &tauri::AppHandle, index: usize) {
+        let _ = app_handle.emit(
+            "agent-step",
+            StepEvent {
+                index,
+                label: STEPS[index].into(),
+            },
+        );
+    }
 
-        // Step 1: 意图解析
-        steps.push(AgentStep {
-            step: "正在理解需求...".into(),
-            status: "running".into(),
-        });
+    pub async fn run(
+        &self,
+        app_handle: &tauri::AppHandle,
+        user_input: &str,
+    ) -> anyhow::Result<AgentResult> {
+        // Step 0: 理解需求
+        self.emit_step(app_handle, 0);
         let intent = parse_intent(&self.llm, user_input).await?;
-        steps.last_mut().unwrap().status = "done".into();
 
-        // 信息不完整 → 追问
         if let Some(follow_up) = intent.missing_info() {
+            let _ = app_handle.emit("agent-step-error", follow_up.clone());
             return Err(anyhow::anyhow!(follow_up));
         }
 
-        // Step 2: 粗筛候选商品
-        steps.push(AgentStep {
-            step: "正在筛选候选商品...".into(),
-            status: "running".into(),
-        });
+        // Step 1: 筛选商品
+        self.emit_step(app_handle, 1);
         let candidates = tools::filter_candidates(&self.all_products, &intent);
-        steps.last_mut().unwrap().status = "done".into();
 
         if candidates.is_empty() {
+            let _ = app_handle.emit("agent-step-error", "未找到匹配的商品，试试换个说法？");
             return Err(anyhow::anyhow!("未找到匹配的商品，试试换个说法？"));
         }
 
-        // Step 3: LLM 匹配 + 排序 + 推荐（一次调用）
-        steps.push(AgentStep {
-            step: "正在比价分析...".into(),
-            status: "running".into(),
-        });
+        // Step 2: 比价分析（LLM 匹配 + 排序 + 推荐）
+        self.emit_step(app_handle, 2);
         let products_json = tools::products_to_json(&candidates);
         let prompt = format!(
             r#"你是一个电商比价助手。根据用户需求和候选商品列表，完成以下任务，返回纯 JSON：
@@ -92,7 +100,8 @@ impl AgentOrchestrator {
                 vec![
                     ChatMessage {
                         role: "system".into(),
-                        content: "你是一个精确的 JSON 输出引擎。只输出 JSON，不输出任何其他内容。".into(),
+                        content: "你是一个精确的 JSON 输出引擎。只输出 JSON，不输出任何其他内容。"
+                            .into(),
                     },
                     ChatMessage {
                         role: "user".into(),
@@ -119,17 +128,13 @@ impl AgentOrchestrator {
         }
 
         let result: MatchResponse = serde_json::from_str(cleaned)?;
-        steps.last_mut().unwrap().status = "done".into();
 
-        steps.push(AgentStep {
-            step: "比价完成".into(),
-            status: "done".into(),
-        });
+        // Step 3: 完成
+        self.emit_step(app_handle, 3);
 
         Ok(AgentResult {
             products: result.products,
             recommendation: result.recommendation,
-            steps,
         })
     }
 }

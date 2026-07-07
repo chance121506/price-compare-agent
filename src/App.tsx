@@ -1,39 +1,56 @@
 import { useState } from "react";
 import { Layout, Typography, Space, Alert, Steps } from "antd";
+import { listen } from "@tauri-apps/api/event";
 import SearchBox from "./components/SearchBox";
 import ResultTable from "./components/ResultTable";
 import PriceChart from "./components/PriceChart";
 import { searchProducts } from "./api/query";
-import type { AgentResult, AgentStep } from "./types/product";
+import type { AgentResult } from "./types/product";
 import "./App.css";
 
 const { Header, Content } = Layout;
 
+const STEP_LABELS = ["理解需求", "筛选商品", "比价分析", "生成推荐"];
+
+interface StepPayload {
+  index: number;
+  label: string;
+}
+
 export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AgentResult | null>(null);
-  const [steps, setSteps] = useState<AgentStep[]>([]);
+  const [stepIndex, setStepIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (question: string) => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setSteps([{ step: "正在理解需求...", status: "running" }]);
+    setStepIndex(0);
+
+    // 监听后端实时推送的步骤事件
+    const unlistenStep = listen<StepPayload>("agent-step", (event) => {
+      setStepIndex(event.payload.index);
+    });
+    const unlistenErr = listen<string>("agent-step-error", (event) => {
+      setError(event.payload);
+      setStepIndex(-1);
+    });
 
     try {
       const res = await searchProducts(question);
       setResult(res);
-      setSteps(res.steps);
     } catch (e) {
-      setError(String(e));
-      setSteps([]);
+      if (!error) setError(String(e));
     } finally {
       setLoading(false);
+      unlistenStep.then((fn) => fn());
+      unlistenErr.then((fn) => fn());
     }
   };
 
-  const stepsIndex = steps.filter((s) => s.status === "done").length;
+  const stepsItems = STEP_LABELS.map((title) => ({ title }));
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -54,14 +71,12 @@ export default function App() {
             <SearchBox onSearch={handleSearch} loading={loading} />
           </div>
 
-          {steps.length > 0 && (
+          {stepIndex >= 0 && (
             <Steps
               size="small"
-              current={stepsIndex}
-              status={steps.some((s) => s.status === "error") ? "error" : "process"}
-              items={steps.map((s) => ({
-                title: s.step.replace("正在", "").replace("...", ""),
-              }))}
+              current={stepIndex}
+              status={error ? "error" : result ? "finish" : "process"}
+              items={stepsItems}
             />
           )}
 
