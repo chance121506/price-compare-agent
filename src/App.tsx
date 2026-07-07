@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Layout, Typography, Space, Alert, Steps } from "antd";
 import SearchBox from "./components/SearchBox";
 import ResultTable from "./components/ResultTable";
+import PriceChart from "./components/PriceChart";
 import { searchProducts } from "./api/query";
 import type { AgentResult, AgentStep } from "./types/product";
 import "./App.css";
@@ -85,6 +86,7 @@ export default function App() {
                 />
               )}
               <ResultTable data={result.products} />
+              <PriceChart products={result.products} />
             </>
           )}
 
