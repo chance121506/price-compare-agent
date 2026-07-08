@@ -1,10 +1,9 @@
-import { Alert, Steps, Typography } from "antd";
+import { Alert, Typography } from "antd";
 import { RobotOutlined, UserOutlined } from "@ant-design/icons";
 import type { AgentResult } from "../types/product";
 import ResultTable from "./ResultTable";
 import PriceChart from "./PriceChart";
-
-const STEP_LABELS = ["理解需求", "筛选商品", "比价分析", "生成推荐"];
+import StepsBar from "./StepsBar";
 
 interface Props {
   role: "user" | "agent";
@@ -17,7 +16,6 @@ interface Props {
 
 export default function ChatBubble({ role, content, loading, stepIndex = -1, error, result }: Props) {
   const isUser = role === "user";
-  const stepsItems = STEP_LABELS.map((title) => ({ title }));
 
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16 }}>
@@ -26,7 +24,7 @@ export default function ChatBubble({ role, content, loading, stepIndex = -1, err
           <RobotOutlined />
         </div>
       )}
-      <div style={{ maxWidth: "75%", minWidth: 200 }}>
+      <div style={{ maxWidth: "90%", minWidth: isUser ? undefined : "50%" }}>
         <Typography.Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: "block" }}>
           {isUser ? "你" : "比价助手"}
         </Typography.Text>
@@ -45,9 +43,7 @@ export default function ChatBubble({ role, content, loading, stepIndex = -1, err
 
           {/* Agent: 加载中 */}
           {!isUser && loading && (
-            <div>
-              <Steps size="small" current={stepIndex} status="process" items={stepsItems} />
-            </div>
+            <StepsBar current={stepIndex} />
           )}
 
           {/* Agent: 错误 */}
