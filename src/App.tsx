@@ -115,7 +115,7 @@ export default function App() {
               size="large"
               placeholder="输入你想买的商品，例如：找一款300以内适合运动的蓝牙耳机"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
               onPressEnter={handleSend}
               disabled={sending}
             />
