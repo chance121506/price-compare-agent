@@ -41,7 +41,7 @@ pub fn build_search_prompt(user_input: &str, intent: &ParsedIntent) -> String {
       "rating": 评分1-5的数字,
       "review_count": 评价数量（数字）,
       "shipping": 运费（数字，包邮填0）,
-      "link": "商品链接或空字符串",
+      "link": "商品在对应平台的搜索直达链接，格式如 https://search.jd.com/Search?keyword=商品名 或 https://s.taobao.com/search?q=商品名，不可为空",
       "match_type": "exact|similar|alternative"
     }}
   ],

@@ -10,6 +10,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import Sidebar from "@/components/sidebar/Sidebar";
 import ChatInput from "@/components/chat/ChatInput";
 import SettingsModal from "@/components/settings/SettingsModal";
@@ -66,10 +67,15 @@ function WelcomeScreen({ onSend }: { onSend: (text: string) => void }) {
   return (
     <div className="welcome-container">
       <div className="welcome-hero">
-        <div className="welcome-icon">🛒</div>
-        <div className="welcome-title">跨平台比价智能体</div>
+        <div className="welcome-icon">
+          <img src="/red-king-logo.svg" alt="Red King" style={{ width: 48, height: 48 }} />
+        </div>
+        <div className="welcome-title">跨平台比价智能体 <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-tertiary)" }}>V2.0.0</span></div>
         <div className="welcome-subtitle">
           告诉我你想买什么，我帮你全网比价，找到最划算的选择。
+        </div>
+        <div className="welcome-version-subtitle" style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 16, opacity: 0.6 }}>
+          软件系统实践 · 25级弘毅班 · <span style={{ color: "var(--accent-orange)", fontWeight: 500 }}>雷德王</span>小组
         </div>
         <div className="welcome-features">
           <span className="welcome-feat-tag">🏷️ 多平台比价</span>
@@ -159,7 +165,18 @@ function MarkdownContent({ children }: { children: string }) {
         ),
         hr: () => <hr style={{ border: "none", borderTop: "1px solid var(--border-default)", margin: "12px 0" }} />,
         a: ({ href, children: c }) => (
-          <a href={href} target="_blank" rel="noreferrer" style={{ color: "var(--text-link)" }}>
+          <a
+            href={href}
+            onClick={(e) => {
+              e.preventDefault();
+              if (href && href.trim() !== "") {
+                openUrl(href);
+              } else {
+                message.warning("此链接不可用（AI 生成内容仅供参考）");
+              }
+            }}
+            style={{ color: "var(--text-link)", cursor: "pointer" }}
+          >
             {c}
           </a>
         ),
@@ -225,9 +242,10 @@ function ChatBubble({
             marginRight: 10,
             flexShrink: 0,
             fontSize: 13,
+            overflow: "hidden",
           }}
         >
-          🤖
+          <img src="/red-king-logo.svg" alt="RK" style={{ width: 20, height: 20 }} />
         </div>
       )}
 
@@ -241,7 +259,7 @@ function ChatBubble({
               color: "var(--text-tertiary)",
             }}
           >
-            {isUser ? "You" : "PriceCompare"}
+            {isUser ? "You" : "PriceCompare · 雷德王"}
           </span>
           {productSummary && (
             <span
@@ -690,6 +708,12 @@ export default function App() {
                 }}
               >
                 🛒 PriceCompare
+                <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-tertiary)", marginLeft: 4 }}>
+                  V2.0.0
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-tertiary)", marginLeft: 8, opacity: 0.55 }}>
+                  软件系统实践 · 25级弘毅班 · 雷德王小组
+                </span>
                 {userMsgCount > 0 && !isWelcome && (
                   <span
                     style={{

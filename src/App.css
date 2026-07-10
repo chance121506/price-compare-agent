@@ -312,18 +312,22 @@ body {
 }
 
 .welcome-icon {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(88, 166, 255, 0.15), rgba(163, 113, 247, 0.15));
+  background: linear-gradient(135deg, rgba(248,81,73,0.12), rgba(210,153,34,0.12));
   border: 1px solid var(--border-default);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
   margin: 0 auto 16px;
-  animation: float 3s ease-in-out infinite;
-  box-shadow: 0 0 30px rgba(88, 166, 255, 0.08);
+  animation: redKingFloat 3s ease-in-out infinite;
+  box-shadow: 0 0 40px rgba(248,81,73,0.12), 0 0 20px rgba(210,153,34,0.06);
+}
+
+@keyframes redKingFloat {
+  0%, 100% { transform: translateY(0px); box-shadow: 0 0 40px rgba(248,81,73,0.12), 0 0 20px rgba(210,153,34,0.06); }
+  50%      { transform: translateY(-5px); box-shadow: 0 8px 50px rgba(248,81,73,0.18), 0 4px 28px rgba(210,153,34,0.10); }
 }
 
 .welcome-title {

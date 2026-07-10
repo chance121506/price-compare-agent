@@ -7,6 +7,8 @@ import {
   TrophyOutlined,
 } from "@ant-design/icons";
 import { useState, useMemo } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { message } from "antd";
 import type { Product } from "@/types/product";
 
 const MATCH_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
@@ -46,7 +48,13 @@ function MatchBadge({ type }: { type?: string }) {
   );
 }
 
-// Score a product: lower price = better, higher rating = better
+function handleOpenLink(link: string | undefined | null) {
+  if (!link || link.trim() === "") {
+    message.warning("此商品暂无购买链接（AI 生成的价格仅供参考）");
+    return;
+  }
+  openUrl(link);
+}
 function scoreProduct(p: Product, minPrice: number, maxPrice: number): number {
   const priceScore = maxPrice > minPrice ? 1 - (p.price - minPrice) / (maxPrice - minPrice) : 1;
   const ratingScore = (p.rating ?? 3) / 5;
@@ -302,10 +310,11 @@ export function ResultCard({ products }: { products: Product[] }) {
                       {product.shipping === 0 ? "📦 包邮" : `运费 ¥${product.shipping}`}
                     </div>
                   )}
-                  <a
-                    href={product.link}
-                    target="_blank"
-                    rel="noreferrer"
+                  <span
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleOpenLink(product.link);
+                    }}
                     style={{
                       color: "var(--text-link)",
                       fontSize: 11,
@@ -314,10 +323,11 @@ export function ResultCard({ products }: { products: Product[] }) {
                       gap: 4,
                       marginTop: 4,
                       textDecoration: "none",
+                      cursor: "pointer",
                     }}
                   >
                     <LinkOutlined /> Buy
-                  </a>
+                  </span>
                 </div>
               </div>
 
@@ -535,7 +545,7 @@ export function ResultCard({ products }: { products: Product[] }) {
                 type="primary"
                 icon={<ExportOutlined />}
                 onClick={() => {
-                  window.open(selectedProduct.link, "_blank");
+                  handleOpenLink(selectedProduct.link);
                 }}
                 style={{
                   width: "100%",
