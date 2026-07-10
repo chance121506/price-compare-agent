@@ -4,17 +4,19 @@
   "version": "1.1.0",
   "identifier": "net.badnuker.price-compare-agent",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "price-compare-agent",
-        "width": 800,
-        "height": 600
+        "title": "跨平台比价智能体",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600
       }
     ],
     "security": {

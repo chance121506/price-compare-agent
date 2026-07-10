@@ -54,8 +54,7 @@ pub async fn save_settings(
     fs::write(&path, json).map_err(|e| e.to_string())?;
 
     // 重建 orchestrator，立即生效
-    let new_orch = AgentOrchestrator::new(create_provider(&settings))
-        .map_err(|e| e.to_string())?;
+    let new_orch = AgentOrchestrator::new(create_provider(&settings));
 
     let state = app_handle.state::<Arc<RwLock<AgentOrchestrator>>>();
     let mut orch = state.write().await;

@@ -40,8 +40,7 @@ pub fn run() {
         llm_model: config.llm_model,
     };
 
-    let orchestrator = AgentOrchestrator::new(create_provider(&settings))
-        .expect("Agent 初始化失败");
+    let orchestrator = AgentOrchestrator::new(create_provider(&settings));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
