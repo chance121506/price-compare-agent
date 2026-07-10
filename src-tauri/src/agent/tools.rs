@@ -1,53 +1,61 @@
-use crate::models::product::{ParsedIntent, Product};
+use crate::models::product::ParsedIntent;
 
-/// 加载离线商品数据集
-pub fn load_products() -> anyhow::Result<Vec<Product>> {
-    let data = include_str!("../../../data/products.json");
-    let products: Vec<Product> = serde_json::from_str(data)?;
-    Ok(products)
-}
+/// 构建联网搜索 prompt — 引导 LLM 扮演比价搜索引擎
+pub fn build_search_prompt(user_input: &str, intent: &ParsedIntent) -> String {
+    format!(
+        r#"你是一个专业的电商比价搜索引擎。请扮演搜索引擎的角色，从你的训练数据中检索京东、淘宝、拼多多、苏宁、天猫等平台的最新商品信息，为用户提供准确的价格对比。
 
-/// 根据意图粗筛候选商品（简单关键词匹配，控制 token 消耗）
-pub fn filter_candidates(products: &[Product], intent: &ParsedIntent) -> Vec<Product> {
-    let keywords: Vec<String> = {
-        let mut k = vec![];
-        if let Some(ref name) = intent.product_name {
-            k.push(name.clone());
-        }
-        if let Some(ref brand) = intent.brand {
-            k.push(brand.clone());
-        }
-        k.extend(intent.features.iter().cloned());
-        k
-    };
+## 用户需求
+- 商品类型: {}
+- 品牌偏好: {}
+- 预算范围: {} ~ {}
+- 功能要求: {}
+- 使用场景: {}
 
-    if keywords.is_empty() {
-        // 没有关键词就全返回（但限制数量）
-        return products.iter().take(30).cloned().collect();
-    }
+原始输入: {}
 
-    let mut scored: Vec<(usize, &Product)> = products
-        .iter()
-        .map(|p| {
-            let text = format!(
-                "{} {} {} {}",
-                p.name, p.category, p.specs, p.features.join(" ")
-            );
-            let score = keywords
-                .iter()
-                .filter(|kw| text.contains(kw.as_str()))
-                .count();
-            (score, p)
-        })
-        .filter(|(score, _)| *score > 0)
-        .collect();
+## 任务要求
+1. 搜索 3-6 款最匹配的商品，**必须覆盖至少 2 个不同平台**（京东/淘宝/拼多多/苏宁/天猫等）
+2. 价格尽量接近当前市场真实价格
+3. 必须为每款商品标注 **rating**（1-5分，基于口碑）和 **review_count**（评价数量）
+4. 为每个商品标注 match_type：
+   - "exact" — 完全匹配用户需求的同款商品
+   - "similar" — 规格相近的替代品
+   - "alternative" — 预算/功能略有差异但值得参考
+5. 按价格从低到高排序
+6. recommendation 字段留空即可（后续流式生成）
 
-    // 按匹配分数降序，取前 30 条
-    scored.sort_by_key(|(s, _)| std::cmp::Reverse(*s));
-    scored.into_iter().map(|(_, p)| p.clone()).take(30).collect()
-}
-
-/// 把候选商品列表序列化为 JSON 字符串，喂给 LLM
-pub fn products_to_json(products: &[Product]) -> String {
-    serde_json::to_string(products).unwrap_or_else(|_| "[]".into())
+## 输出格式（纯 JSON，不要 markdown 标记）
+```json
+{{
+  "products": [
+    {{
+      "id": "唯一ID",
+      "name": "商品全名（含品牌型号）",
+      "platform": "京东|淘宝|拼多多|苏宁|天猫",
+      "price": 数字价格,
+      "original_price": 原价或null,
+      "specs": "核心规格参数（简明扼要）",
+      "category": "商品类别",
+      "features": ["功能标签1", "功能标签2", "功能标签3"],
+      "rating": 评分1-5的数字,
+      "review_count": 评价数量（数字）,
+      "shipping": 运费（数字，包邮填0）,
+      "link": "商品链接或空字符串",
+      "match_type": "exact|similar|alternative"
+    }}
+  ],
+  "recommendation": ""
+}}
+```"#,
+        intent.product_name.as_deref().unwrap_or("未知"),
+        intent.brand.as_deref().unwrap_or("无偏好"),
+        intent.budget_min
+            .map_or("不限".into(), |v| format!("¥{}", v)),
+        intent.budget_max
+            .map_or("不限".into(), |v| format!("¥{}", v)),
+        intent.features.join("、"),
+        intent.usage_scenario.as_deref().unwrap_or("通用"),
+        user_input,
+    )
 }
