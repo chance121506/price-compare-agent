@@ -1,8 +1,8 @@
 [package]
 name = "price-compare-agent"
-version = "1.1.0"
-description = "跨平台自动比价智能体"
-authors = ["Red King Group"]
+version = "2.0.0"
+description = "跨平台自动比价智能体 - 雷德王小组"
+authors = ["Red King Group (雷德王)"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
